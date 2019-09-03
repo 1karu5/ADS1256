@@ -8,49 +8,43 @@
 #define ADS1256_h
 
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
-	// Define PORT
-	#define PORT_DRDY PORTB // Pin 9 on Arduino UNO
-	#define PIN_DRDY PINB
-	#define PINDEX_DRDY PB1
-	#define DDR_DRDY DDRB
-
-	#define PORT_CS PORTB // Pin 10 on Arduino UNO
-	#define PIN_CS PINB
-	#define PINDEX_CS PB2
-	#define DDR_CS DDRB
-
-	#define PORT_RESET PORTB // PIN 8 on Arduino UNO
-	#define PIN_REST PINB
-	#define PINDEX_RESET PB0
-	#define DDR_RESET DDRB
-
+  #define _DRDY PB1
+  #define _CS PB2
+  #define _RESET PB0
 #elif defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
-	// Define PORT
-	#define PORT_DRDY PORTL // Pin 49 on Arduino Mega
-	#define PIN_DRDY PINL
-	#define PINDEX_DRDY PL0
-	#define DDR_DRDY DDRL
-
-	#define PORT_CS PORTB // Pin 53 on Arduino Mega
-	#define PIN_CS PINB
-	#define PINDEX_CS PB0
-	#define DDR_CS DDRB
-
-	#define PORT_RESET PORTL // PIN 48 on Arduino Mega
-	#define PIN_REST PINL
-	#define PINDEX_RESET PL1
-	#define DDR_RESET DDRL
-	
+  #define _DRDY PL0
+  #define _CS PB0
+  #define _RESET PL1
 	// Contributions are welcome
 #elif   defined(ARDUINO_ARCH_ESP32)
 	#error "Oops! ESP32 architecture not supported yet"	
 	// Contributions are welcome
+
+#elif defined(ESP8266)
+  #define _CS D1
+  #define _DRDY D2
+  #define _RESET D3
+  #define NOP __asm__ __volatile__ ("nop\n\t");
+  #if F_CPU == 80000000UL
+    //11 nops with 80 mhz
+    #define DELAY1 NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;
+  #elif F_CPU == 160000000UL
+    //21 nops with 160mhz
+    #define DELAY1 NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;NOP;
+  #endif
 #else 
 	// Contributions are welcome
 	#error "Oops! Your board architecture is not supported yet'"
 #endif
+
+#ifndef DELAY1
+  #define DELAY1 __builtin_avr_delay_cycles(3);
+#endif
+
+//#define ADSCLOCK 7680000UL
+
 // ADS1256 Register
-#define STATUS 0x00
+#define ADSSTATUS 0x00
 #define MUX 0x01
 #define ADCON 0x02
 #define DRATE 0x03
@@ -151,6 +145,8 @@ class ADS1256 {
   void readTest();
 
  private:
+  void _delay4(); // t11 delay (4*tCLKIN)
+  void _delay50(); // t6 delay (50*tCLKIN)
   void CSON();
   void CSOFF();
   unsigned long read_uint24();
